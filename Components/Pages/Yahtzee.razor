@@ -1,0 +1,465 @@
+﻿@page "/yahtzee"
+@rendermode InteractiveServer
+
+<PageTitle>Yahtzee</PageTitle>
+
+<h1>Yahtzee</h1>
+
+<button @onclick="rollDiceButton" class="btn btn-primary" disabled="@IsRollButtonDisabled">Relancer</button>
+<button @onclick="restartGame" class="btn btn-primary" style="visibility: @(GameFinished ? "visible" : "hidden")">Recommencer</button>
+<br/>
+
+<div class="dice-container-yahtzee">
+    @for (int i = 0; i < DiceResults.Count; i++)
+    {
+        int index = i;
+
+        <div class="dice-yahtzee @(SelectedDice.Contains(index) ? "selected" : "")"
+            style="--dice: url('/images/dice-@(DiceResults[index]).svg')"
+            @onclick="() => selectDice(index)">
+        </div>
+    }
+
+</div>
+<div class="score-table-container">
+    <table class="score-table">
+        <thead>
+            <tr>
+                <th>Partie supérieure</th>
+                <th>Score</th>
+                <th>Action</th>
+                <th>Partie inférieure</th>
+                <th>Score</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>As</td>
+                <td>@scoreAs</td>
+                <td><button class="btn btn-primary" @onclick="validateAs" disabled="@IsAsButtonDisabled">Valider</button></td>
+
+                <td>Brelan</td>
+                <td>@scoreBrelan</td>
+                <td><button class="btn btn-primary" @onclick="validateBrelan" disabled="@IsBrelanButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Deux</td>
+                <td>@scoreTwo</td>
+                <td><button class="btn btn-primary" @onclick="validateTwo" disabled="@IsTwoButtonDisabled">Valider</button></td>
+
+                <td>Carré</td>
+                <td>@scoreCarre</td>
+                <td><button class="btn btn-primary" @onclick="validateCarre" disabled="@IsCarreButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Trois</td>
+                <td>@scoreThree</td>
+                <td><button class="btn btn-primary" @onclick="validateThree" disabled="@IsThreeButtonDisabled">Valider</button></td>
+
+                <td>Full</td>
+                <td>@scoreFull</td>
+                <td><button class="btn btn-primary" @onclick="validateFull" disabled="@IsFullButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Quatre</td>
+                <td>@scoreFour</td>
+                <td><button class="btn btn-primary" @onclick="validateFour" disabled="@IsFourButtonDisabled">Valider</button></td>
+
+                <td>Petite suite</td>
+                <td>@scoreSmallSuite</td>
+                <td><button class="btn btn-primary" @onclick="validateSmallSuite" disabled="@IsSmallSuiteButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Cinq</td>
+                <td>@scoreFive</td>
+                <td><button class="btn btn-primary" @onclick="validateFive" disabled="@IsFiveButtonDisabled">Valider</button></td>
+
+                <td>Grande suite</td>
+                <td>@scoreLargeSuite</td>
+                <td><button class="btn btn-primary" @onclick="validateLargeSuite" disabled="@IsLargeSuiteButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Six</td>
+                <td>@scoreSix</td>
+                <td><button class="btn btn-primary" @onclick="validateSix" disabled="@IsSixButtonDisabled">Valider</button></td>
+
+                <td>Yahtzee</td>
+                <td>@scoreYahtzee</td>
+                <td><button class="btn btn-primary" @onclick="validateYahtzee" disabled="@IsYahtzeeButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Total supérieur</td>
+                <td>@totalSuperieur</td>
+                <td></td>
+
+                <td>Chance</td>
+                <td>@scoreChance</td>
+                <td><button class="btn btn-primary" @onclick="validateChance" disabled="@IsChanceButtonDisabled">Valider</button></td>
+            </tr>
+
+            <tr>
+                <td>Bonus ≥ 63 (+35)</td>
+                <td>@scoreBonus</td>
+                <td></td>
+
+                <td><strong>Total</strong></td>
+                <td><strong>@scoreTotal</strong></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@code {
+
+    List<int> DiceResults = new();
+    List<int> SelectedDice = new();
+    private int DiceResult = 0;
+    private bool GameFinished = false;
+    private int totalRolls = 0;
+    private int scoreAs = 0;
+    private int scoreTwo = 0;
+    private int scoreThree = 0;
+    private int scoreFour = 0;
+    private int scoreFive = 0;
+    private int scoreSix = 0;
+    private int totalSuperieur = 0;
+    private int scoreBonus = 0;
+    private int scoreBrelan = 0;
+    private int scoreCarre = 0;
+    private int scoreFull = 0;
+    private int scoreSmallSuite = 0;
+    private int scoreLargeSuite = 0;
+    private int scoreYahtzee = 0;
+    private int scoreChance = 0;
+    private int scoreTotal = 0;
+    private bool IsRollButtonDisabled = false;
+    private bool IsAsButtonDisabled = false;
+    private bool IsTwoButtonDisabled = false;
+    private bool IsThreeButtonDisabled = false;
+    private bool IsFourButtonDisabled = false;
+    private bool IsFiveButtonDisabled = false;
+    private bool IsSixButtonDisabled = false;
+    private bool IsBrelanButtonDisabled = false;
+    private bool IsCarreButtonDisabled = false;
+    private bool IsFullButtonDisabled = false;
+    private bool IsSmallSuiteButtonDisabled = false;
+    private bool IsLargeSuiteButtonDisabled = false;
+    private bool IsYahtzeeButtonDisabled = false;
+    private bool IsChanceButtonDisabled = false;
+    protected override void OnInitialized()
+    {
+        DiceResult = 0;
+        IsRollButtonDisabled = false;
+    }
+    void restartGame(){
+        GameFinished = false;
+        DiceResults.Clear();
+        DiceResult = 0;
+        scoreAs = 0;
+        scoreTwo = 0;
+        scoreThree = 0;
+        scoreFour = 0;
+        scoreFive = 0;
+        scoreSix = 0;
+        totalSuperieur = 0;
+        scoreBonus = 0;
+        scoreBrelan = 0;
+        scoreCarre = 0;
+        scoreFull = 0;
+        scoreSmallSuite = 0;
+        scoreLargeSuite = 0;
+        scoreYahtzee = 0;
+        scoreChance = 0;
+        scoreTotal = 0;
+
+        IsAsButtonDisabled = false;
+        IsTwoButtonDisabled = false;
+        IsThreeButtonDisabled = false;
+        IsFourButtonDisabled = false;
+        IsFiveButtonDisabled = false;
+        IsSixButtonDisabled = false;
+        IsBrelanButtonDisabled = false;
+        IsCarreButtonDisabled = false;
+        IsFullButtonDisabled = false;
+        IsSmallSuiteButtonDisabled = false;
+        IsLargeSuiteButtonDisabled = false;
+        IsYahtzeeButtonDisabled = false;
+        IsChanceButtonDisabled = false;
+        IsRollButtonDisabled = false;
+    }
+    void CheckGameFinished()
+    {
+        totalRolls = 0;
+        IsRollButtonDisabled = false;
+        DiceResults.Clear();
+
+        if (IsAsButtonDisabled &&
+            IsTwoButtonDisabled &&
+            IsThreeButtonDisabled &&
+            IsFourButtonDisabled &&
+            IsFiveButtonDisabled &&
+            IsSixButtonDisabled &&
+            IsBrelanButtonDisabled &&
+            IsCarreButtonDisabled &&
+            IsFullButtonDisabled &&
+            IsSmallSuiteButtonDisabled &&
+            IsLargeSuiteButtonDisabled &&
+            IsYahtzeeButtonDisabled &&
+            IsChanceButtonDisabled)
+        {
+            IsRollButtonDisabled = true;
+            GameFinished = true;
+        }
+    }
+    void selectDice(int index)
+    {
+        if (SelectedDice.Contains(index))
+        {
+            SelectedDice.Remove(index);
+        }
+        else
+        {
+            SelectedDice.Add(index);
+        }
+    }
+
+    void rollDiceButton()
+    {
+        totalRolls++;
+
+        if (DiceResults.Count == 0)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                DiceResults.Add(rollDice());
+            }
+        }
+        else
+        {
+            for (int i = 0; i < DiceResults.Count; i++)
+            {
+                if (SelectedDice.Contains(i))
+                {
+                    DiceResults[i] = rollDice();
+                }
+            }
+        }
+        SelectedDice.Clear();
+        if (totalRolls == 3)
+        {
+            IsRollButtonDisabled = true;
+        }
+    }
+
+    int rollDice()
+    {
+        Random random = new Random();
+        int roll = random.Next(minValue: 1, maxValue: 7); // Generates a number between 1 and 6
+        return roll;
+    }
+
+    void validateAs()
+    {
+        for (int i = 0; i < DiceResults.Count; i++)
+        {
+            if (DiceResults[i] == 1)
+            {
+                scoreAs += 1;
+            }
+        }
+        IsAsButtonDisabled = true;
+        totalSuperieur += scoreAs;
+        scoreTotal += scoreAs;
+        checkBonus();
+    }
+
+    void validateTwo(){
+        for (int i = 0; i < DiceResults.Count; i++)
+        {
+            if (DiceResults[i] == 2)
+            {
+                scoreTwo += 2;
+            }
+        }
+        IsTwoButtonDisabled = true;
+        totalSuperieur += scoreTwo;
+        scoreTotal += scoreTwo;
+        checkBonus();
+    }
+
+    void validateThree(){
+        for (int i = 0; i < DiceResults.Count; i++)
+        {
+            if (DiceResults[i] == 3)
+            {
+                scoreThree += 3;
+            }
+        }
+        IsThreeButtonDisabled = true;
+        totalSuperieur += scoreThree;
+        scoreTotal += scoreThree;
+        checkBonus();
+    }
+
+    void validateFour(){
+        for (int i = 0; i < DiceResults.Count; i++)
+        {
+            if (DiceResults[i] == 4)
+            {
+                scoreFour += 4;
+            }
+        }
+        IsFourButtonDisabled = true;
+        totalSuperieur += scoreFour;
+        scoreTotal += scoreFour;
+        checkBonus();
+    }
+
+    void validateFive(){
+        for (int i = 0; i < DiceResults.Count; i++)
+        {
+            if (DiceResults[i] == 5)
+            {
+                scoreFive += 5;
+            }
+        }
+        IsFiveButtonDisabled = true;
+        totalSuperieur += scoreFive;
+        scoreTotal += scoreFive;
+        checkBonus();
+    }
+
+    void validateSix(){
+        for (int i = 0; i < DiceResults.Count; i++)
+        {
+            if (DiceResults[i] == 6)
+            {
+                scoreSix += 6;
+            }
+        }
+        IsSixButtonDisabled = true;
+        totalSuperieur += scoreSix;
+        scoreTotal += scoreSix;
+        checkBonus();
+    }
+
+    void checkBonus()
+    {
+        if (IsAsButtonDisabled && IsTwoButtonDisabled && IsThreeButtonDisabled && IsFourButtonDisabled && IsFiveButtonDisabled && IsSixButtonDisabled)
+        {
+            if (totalSuperieur >= 63){
+                scoreBonus = 35;
+            } else {
+                scoreBonus = 0;
+            }
+        }
+        scoreTotal += scoreBonus;
+        CheckGameFinished();
+    }
+
+    void validateBrelan(){
+        foreach (int dice in DiceResults)
+        {
+            int count = DiceResults.Count(d => d == dice);
+            if (count >= 3)
+            {
+                scoreBrelan = DiceResults.Sum();
+                break;
+            }
+        }
+        IsBrelanButtonDisabled = true;
+        scoreTotal += scoreBrelan;
+        CheckGameFinished();
+    }
+
+    void validateCarre(){
+        foreach (int dice in DiceResults)
+        {
+            int count = DiceResults.Count(d => d == dice);
+            if (count >= 4)
+            {
+                scoreCarre = DiceResults.Sum();
+                break;
+            }
+        }
+        IsCarreButtonDisabled = true;
+        scoreTotal += scoreCarre;
+        CheckGameFinished();
+    }
+
+    void validateFull(){
+        foreach (int dice in DiceResults)
+        {
+            int count = DiceResults.Count(d => d == dice);
+            if (count == 3)
+            {
+                foreach (int dice2 in DiceResults)
+                {
+                    int count2 = DiceResults.Count(d => d == dice2);
+                    if (count2 == 2)
+                    {
+                        scoreFull = 25;
+                        break;
+                    }
+                }
+            }
+        }
+        IsFullButtonDisabled = true;
+        scoreTotal += scoreFull;
+        CheckGameFinished();
+    }
+
+    void validateSmallSuite(){
+        if ((DiceResults.Contains(1) && DiceResults.Contains(2) && DiceResults.Contains(3) && DiceResults.Contains(4))
+            || (DiceResults.Contains(2) && DiceResults.Contains(3) && DiceResults.Contains(4) && DiceResults.Contains(5))
+            || (DiceResults.Contains(3) && DiceResults.Contains(4) && DiceResults.Contains(5) && DiceResults.Contains(6)))
+            {
+                scoreSmallSuite = 30;
+            }
+        IsSmallSuiteButtonDisabled = true;
+        scoreTotal += scoreSmallSuite;   
+        CheckGameFinished();
+    }
+
+    void validateLargeSuite(){
+        if ((DiceResults.Contains(1) && DiceResults.Contains(2) && DiceResults.Contains(3) && DiceResults.Contains(4) && DiceResults.Contains(5))
+            || (DiceResults.Contains(2) && DiceResults.Contains(3) && DiceResults.Contains(4) && DiceResults.Contains(5) && DiceResults.Contains(6)))
+            {
+                scoreLargeSuite = 40;
+            }
+        IsLargeSuiteButtonDisabled = true;
+        scoreTotal += scoreLargeSuite;
+        CheckGameFinished();
+    }
+
+    void validateYahtzee(){
+        foreach (int dice in DiceResults)
+        {
+            int count = DiceResults.Count(d => d == dice);
+            if (count == 5)
+            {
+                scoreYahtzee = 50;
+                break;
+            }
+        }
+        IsYahtzeeButtonDisabled = true;
+        scoreTotal += scoreYahtzee;
+        CheckGameFinished();
+    }
+
+    void validateChance(){
+        scoreChance = DiceResults.Sum();
+        IsChanceButtonDisabled = true; 
+        scoreTotal += scoreChance;  
+        CheckGameFinished();
+    }
+}

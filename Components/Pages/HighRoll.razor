@@ -1,0 +1,67 @@
+@page "/highroll"
+@rendermode InteractiveServer
+
+<PageTitle>High Roll</PageTitle>
+
+<h1>High Roll</h1>
+
+<button class="btn btn-primary" @onclick="rollDiceButton">Relancer</button>
+
+@if (DiceResult != 0){
+    <p role="status">Votre score : @DiceResult</p>
+    <div class="dice-highroll"
+        style="--dice: url('/images/dice-@(DiceResult).svg')">
+    </div>
+
+    <p role="status">Score du bot : @DiceResultBot</p>
+    <div class="dice-highroll"
+        style="--dice: url('/images/dice-@(DiceResultBot).svg')">
+    </div>
+
+    <h3 role="status">@result</h3>
+}
+
+@code {
+    private int DiceResult = 0;
+    private int DiceResultBot = 0;
+    private string result = "";
+
+    protected override void OnInitialized()
+    {
+        DiceResult = 0;
+        DiceResultBot = 0;
+    }
+
+    void rollDiceButton()
+    {
+        DiceResult = rollDice();
+        rollDiceBot();
+        checkIfUserWon();
+    }
+    void rollDiceBot()
+    {
+        DiceResultBot = rollDice();
+    }
+    void checkIfUserWon()
+    {
+        if (DiceResult > DiceResultBot)
+        {
+            result = "Vous avez gagné !";
+        }
+        else if (DiceResult < DiceResultBot)
+        {
+            result = "Vous avez perdu !";
+        }
+        else
+        {
+            result = "Égalité !"; 
+        }
+    }
+
+    int rollDice()
+    {
+        Random random = new Random();
+        int roll = random.Next(minValue: 1, maxValue: 7); // Generates a number between 1 and 6
+        return roll;
+    }
+}

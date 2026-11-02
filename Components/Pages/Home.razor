@@ -1,0 +1,45 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>Accueil</PageTitle>
+
+<div class="@(isDarkMode ? "dark-mode" : "")">
+    <h1>Dice Games</h1>
+
+    <p>Choisissez un jeu :</p>
+    <div class="games-container">
+        <div class="game">
+            <h3>High Roll</h3>
+            <NavLink href="highroll"><div class="dice-highroll" style="--dice: url('/images/dice-1.svg')"></div></NavLink>
+        </div>
+        <div class="game">
+            <h3>Pig</h3>
+            <NavLink href="pig"><div class="dice-pig" style="--dice: url('/images/dice-2.svg')"></div></NavLink>
+        </div>
+        <div class="game">
+            <h3>Yahtzee</h3>
+            <NavLink href="yahtzee"><div class="dice-yahtzee" style="--dice: url('/images/dice-3.svg')"></div></NavLink>
+        </div>
+        <div class="game">
+            <h3>Duel de dés</h3>
+            <NavLink href="duel"><div class="dice-duel" style="--dice: url('/images/dice-4.svg')"></div></NavLink>
+        </div>
+        <div class="game">
+            <h3>Can't Stop</h3>
+            <NavLink href="cantstop"><div class="dice-cant-stop" style="--dice: url('/images/dice-5.svg')"></div></NavLink>
+        </div>
+        <div class="game">
+            <h3>Dice Race</h3>
+            <NavLink href="dicerace"><div class="dice-race" style="--dice: url('/images/dice-6.svg')"></div></NavLink>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isDarkMode = false;
+
+    private void ToggleDarkMode()
+    {
+        isDarkMode = !isDarkMode;
+    }
+}

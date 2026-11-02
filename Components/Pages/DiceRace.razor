@@ -1,0 +1,307 @@
+@page "/dicerace"
+@rendermode InteractiveServer
+
+<PageTitle>Dice Race</PageTitle>
+
+<h1>Dice Race</h1>
+
+<table class="board-table">
+    <tr>
+        @for (int i = 0; i < 10; i++)
+        {
+            <td class="board-cell @(GetSpecialCaseClass(i+1)) @(GetCellClass(i)) ">
+                @(i + 1)
+            </td>
+        }
+    </tr>
+    <tr class="board-space"></tr>
+    <tr>
+        @for (int j = 19; j >= 10; j--)
+        {
+            <td class="board-cell @(GetSpecialCaseClass(j+1)) @(GetCellClass(j))">
+                @(j + 1)
+            </td>
+        }
+    </tr>
+    <tr class="board-space"></tr>
+    <tr>
+        @for (int k = 20; k < 30; k++)
+        {
+            <td class="board-cell @(GetSpecialCaseClass(k+1)) @(GetCellClass(k))">
+                @(k + 1)
+            </td>
+        }
+    </tr>
+</table>
+
+<button class="btn btn-primary" disabled="@(IsRollButtonDisabled)" @onclick="rollDiceButton">Relancer</button>
+@if (IsRestartVisible)
+{
+    <button class="btn btn-primary" style="visibility: @(IsRestartVisible ? "visible" : "hidden")" @onclick="restartGame">Recommencer</button>
+}
+
+@if (DiceResult != 0){
+    <p role="status">Votre score : @DiceResult</p>
+    <div class="dice-race"
+        style="--dice: url('/images/dice-@(DiceResult).svg')">
+    </div>
+    <h3 role="status">@resultPlayer</h3>
+
+    @if(IsBotVisible)
+    {
+        <p role="status">Score du bot : @DiceResultBot</p>
+        <div class="dice-race-bot"
+            style="--dice: url('/images/dice-@(DiceResultBot).svg')">
+        </div>
+    }
+    <h3 role="status">@resultBot</h3>
+}
+
+@code {
+    private int DiceResult = 0;
+    private int DiceResultBot = 0;
+    private string resultPlayer = "";
+    private string resultBot = "";
+    private int playerPosition = 0;
+    private int botPosition = 0;
+    private int minValue = 1;
+    private bool IsRollButtonDisabled = false;
+    private bool IsRestartVisible = false;
+    private bool IsBotVisible = true;
+    private int position = 0;
+    private bool playerReplay = false;
+    private bool botReplay = false;
+    //List<int> boardPositions = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 };
+
+    protected override void OnInitialized()
+    {
+        DiceResult = 0;
+        DiceResultBot = 0;
+        IsRollButtonDisabled = false;
+    }
+
+    async Task rollDiceButton()
+    {   
+        resultPlayer = "";
+        resultBot = "";
+
+        IsBotVisible = false;
+        IsRollButtonDisabled = true;
+
+        DiceResult = rollDice();
+        for (int i = 0; i < DiceResult; i++)
+        {
+            playerPosition++;
+            CheckWinCondition();
+            if (IsRestartVisible)
+                return;
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(400);
+
+        }
+
+        await CheckCase(playerPosition, "player");
+
+        if (IsRestartVisible)
+            return;
+
+        await Task.Delay(400);
+
+        if (playerReplay)
+        {
+            playerReplay = false;
+            IsRollButtonDisabled = false;
+            return;
+        }
+        IsBotVisible = true;
+
+        do
+        {
+            botReplay = false;
+            DiceResultBot = rollDice();
+
+            for (int i = 0; i < DiceResultBot; i++)
+            {
+                botPosition++;
+                CheckWinCondition();
+                if (IsRestartVisible)
+                    return;
+
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(400);
+
+            }
+
+            await CheckCase(botPosition, "bot");
+
+            if (IsRestartVisible)
+                return;
+
+        }
+        while (botReplay);
+        IsRollButtonDisabled = false;
+    }
+
+    async Task CheckCase(int pos, string player)
+    {
+        if (pos == 5 || pos == 13 || pos == 21)
+        {
+            if (player == "player")
+            {
+                resultPlayer = "Vous avancez de 3 cases !";
+            }
+            else
+            {
+                resultBot = "Le bot avance de 3 cases !";
+            }
+            await MovePlayerAsync(3, player);
+        }
+        else if (pos == 9 || pos == 18 || pos == 27)
+        {
+            if (player == "player")
+            {
+                resultPlayer = "Vous reculez de 2 cases !";
+            }
+            else
+            {
+                resultBot = "Le bot recule de 2 cases !";
+            }
+            await MovePlayerAsync(-2, player);
+        }
+        else if (pos == 12)
+        {
+            int currentPosition = player == "player" ? playerPosition : botPosition;
+            if (player == "player")
+            {
+                resultPlayer = "Retour à la case départ !";
+            }
+            else
+            {
+                resultBot = "Le bot retourne à la case départ !";
+            }
+            await MovePlayerAsync(-currentPosition, player, 150);
+        }
+        else if (pos == 15)
+        {
+            if (player == "player")
+            {
+                playerReplay = player == "player";
+                resultPlayer = "Vous rejouez !";
+            }
+            else
+            {
+                botReplay = player == "bot";
+                resultBot = "Le bot rejoue !";
+            }   
+        }
+    }
+
+    void CheckWinCondition()
+    {
+        if (playerPosition >= 30)
+        {
+            resultPlayer = "Vous avez gagné !";
+            playerPosition = 30;
+            IsRollButtonDisabled = true;
+            IsRestartVisible = true;
+        }
+
+        else if (botPosition >= 30)
+        {
+            resultBot = "Le bot a gagné !";
+            botPosition = 30;
+            IsRollButtonDisabled = true;
+            IsRestartVisible = true;
+        } 
+
+    }
+
+    async Task MovePlayerAsync(int steps, string player, int delay = 400)
+    {
+        for (int i = 0; i < Math.Abs(steps); i++)
+        {
+            switch (player)
+            {
+                case "player":
+                    if (steps > 0)
+                    {
+                        playerPosition++;
+                    }
+                    else if (steps < 0)
+                    {
+                        playerPosition--;
+                    }
+                    break;
+
+                case "bot":
+                    if (steps > 0)
+                    {
+                        botPosition++;
+                    }
+                    else if (steps < 0)
+                    {
+                        botPosition--;
+                    }
+                    break;
+            }
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(delay);
+        }
+    }
+
+    void restartGame()
+    {
+        DiceResult = 0;
+        DiceResultBot = 0;
+        playerPosition = 0;
+        botPosition = 0;
+        resultPlayer = "";
+        resultBot = "";
+        IsRollButtonDisabled = false;
+        IsRestartVisible = false;
+        IsBotVisible = false;
+    }
+
+    int rollDice()
+    {
+        Random random = new Random();
+        int roll = random.Next(minValue: 1, maxValue: 7); // Generates a number between 1 and 6
+        return roll;
+    }
+
+    string GetCellClass(int position)
+    {
+        if (position == playerPosition - 1 && position == botPosition - 1)
+            return "both-position";
+
+        if (position == playerPosition - 1)
+            return "player-position";
+
+        if (position == botPosition - 1)
+            return "bot-position";
+
+        return "";
+    }
+
+    string GetSpecialCaseClass(int position)
+    {
+        if (position == 5 || position == 13 || position == 21)
+        {
+           return "case-advance";
+        }
+        else if (position == 9 || position == 18 || position == 27)
+        {
+            return "case-retreat";
+        }
+        else if (position == 12)
+        {
+            return "case-return-start";
+        }
+        else if (position == 15)
+        {
+            return "case-replay";
+        }
+        return "";
+    }
+}

@@ -1,0 +1,279 @@
+@page "/cantstop"
+@rendermode InteractiveServer
+
+<PageTitle>Can't Stop</PageTitle>
+
+<h1>Can't Stop</h1>
+
+<button class="btn btn-primary" disabled="@(IsRollButtonDisabled)" @onclick="rollDiceButton">Relancer</button>
+@if (IsRestartVisible)
+{
+    <button class="btn btn-primary" style="visibility: @(IsRestartVisible ? "visible" : "hidden")" @onclick="restartGame">Recommencer</button>
+}
+<h3 role="status">Temps restant : @count heure(s)</h3>
+<br>
+@if (DiceResult != 0){
+    <div class="dice-cant-stop-container">
+        @for (int i=0; i < (@DiceResults.Count); i++){
+            int index = i;
+            <div class="dice-cant-stop @(SelectedDice.Contains(index) && !UsedDice[index] ? "selected" : "")
+                @(UsedDice[index] ? "used" : "")"
+                style="--dice: url('/images/dice-@(DiceResults[index]).svg')"
+                @onclick="() => selectDice(index)">
+            </div>
+        }
+    </div>
+}
+<br>
+<h3 role="status">@result</h3>
+<div class="cantstop-table-container">
+    <table class="cantstop-table">
+        <tr>
+            @for (int i = 0; i < ColomnHeights.Count; i++)
+            {
+                <td>
+                    @for (int j = ColomnHeights[i]; j > 0; j--)
+                    {
+                        <div class="cantstop-case @(Positions[i] == j ? "active" : "")">
+                            @j
+                        </div>
+                    }
+                </td>
+            }
+        </tr>
+        <tr>
+            
+            @for (int i = 0; i < ColomnHeights.Count; i++)
+            {
+                int column = i + 2;
+
+                <td class="index">
+                    <button class="btn btn-colomn" disabled="@(ValidButton != column)" @onclick="() => ValidateColumn(column)">
+                        @column
+                    </button>
+                </td>
+            }
+        </tr>
+    </table>
+</div>
+
+@code {
+    private int DiceResult = 0;
+    private string result = "";
+    List<int> DiceResults = new();
+    List<int> SelectedDice = new();
+    List<int> ColomnHeights = new List<int> {3, 4, 5, 6, 7, 8, 7, 6, 5, 4, 3};
+    List<int> ButtonList = new List<int> {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    List<int> Positions = new() {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    List<bool> UsedDice = new() {false, false, false, false};
+    List<bool> CompletedColumns = new(){ false, false, false, false, false, false, false, false, false, false, false};
+    private int ValidButton = 0;
+    private bool IsRollButtonDisabled = false;
+    private bool IsRestartVisible = false;
+    private int PawnCount = 0;
+    private int count = 21;
+
+    protected override void OnInitialized()
+    {
+        DiceResult = 0;
+    }
+
+    void rollDiceButton()
+    {
+        for (int i = 0; i < UsedDice.Count; i++)
+        {
+            UsedDice[i] = false;
+        }
+        DiceResults.Clear();
+        SelectedDice.Clear();
+        ValidButton = 0;
+
+        for (int i=0; i<4; i++)
+        {
+            DiceResults.Add(rollDice());
+        }
+        DiceResult = DiceResults.Sum();
+
+
+        count--;
+        checkIfUserWon();
+    }
+
+    void selectDice(int index)
+    {
+        if (UsedDice[index])
+        {
+            return;
+        }
+
+        if (SelectedDice.Contains(index))
+        {
+            SelectedDice.Remove(index);
+            ValidButton = 0;
+        }
+        else
+        {
+            if (SelectedDice.Count < 2)
+            {
+                SelectedDice.Add(index);
+            }
+
+            if (SelectedDice.Count == 2)
+            {
+                int sum = SelectedDice.Sum(i => DiceResults[i]);
+
+                if (ButtonList.Contains(sum))
+                {
+                    int position = sum - 2;
+
+                    if (!CompletedColumns[position] &&
+                        (Positions[position] != 0 || PawnCount < 3))
+                    {
+                        ValidButton = sum;
+                    }
+                    else
+                    {
+                        ValidButton = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    void ValidateColumn(int column)
+    {
+        if (column < 2 || column > 12)
+        {
+            return;
+        }
+
+        int position = column - 2;
+
+        if (CompletedColumns[position])
+        {
+            return;
+        }
+
+        if (Positions[position] == 0 && PawnCount >= 3)
+        {
+            return;
+        }
+
+        Positions[position]++;
+
+        UsedDice[SelectedDice[0]] = true;
+        UsedDice[SelectedDice[1]] = true;
+
+        SelectedDice.Clear();
+
+        ValidButton = 0;
+
+        // La colonne est-elle terminée ?
+        if (ColomnHeights[position] == Positions[position])
+        {
+            result = $"Vous avez atteint le sommet {column} !";
+            CompletedColumns[position] = true;
+        }
+
+        // Recompter les colonnes actives
+        PawnCount = 0;
+
+        for (int i = 0; i < Positions.Count; i++)
+        {
+            if (Positions[i] != 0)
+            {
+                PawnCount++;
+            }
+        }
+        if (ColomnHeights[column - 2] == Positions[column - 2])
+        {
+            result = $"Vous avez atteint le sommet {column} !";
+            CompletedColumns[column - 2] = true;
+            IsRollButtonDisabled = false;
+        }
+
+        if (!CanPlay())
+        {
+            IsRollButtonDisabled = false;
+        }
+        else
+        {
+            IsRollButtonDisabled = true;
+        }
+
+        checkIfUserWon();
+    }
+
+    bool CanPlay()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (UsedDice[i])
+                continue;
+
+            for (int j = i + 1; j < 4; j++)
+            {
+                if (UsedDice[j])
+                    continue;
+
+                int sum = DiceResults[i] + DiceResults[j];
+                int position = sum - 2;
+
+                if (!CompletedColumns[position] && (Positions[position] != 0 || PawnCount < 3))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    void checkIfUserWon()
+    {
+        int completedCount = 0;
+
+        for (int i = 0; i < CompletedColumns.Count; i++)
+        {
+            if (CompletedColumns[i])
+            {
+                completedCount++;
+            }
+        }
+
+        if (completedCount == 3)
+        {
+            result = "Vous avez gagné ! vous avez réussi à gravir 3 sommets avant la nuit";
+            IsRollButtonDisabled = true;
+            IsRestartVisible = true;
+        }
+        else if (count == 0)
+        {
+            result = "Vous avez perdu ! vous n'etes pas arrivé avant la nuit";
+            IsRollButtonDisabled = true;
+            IsRestartVisible = true;
+        }
+    }
+
+    void restartGame()
+    {
+        DiceResult = 0;
+        result = "";
+        DiceResults.Clear();
+        SelectedDice.Clear();
+        Positions = new() {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        UsedDice = new() {false, false, false, false};
+        CompletedColumns = new(){ false, false, false, false, false, false, false, false, false, false, false};
+        ValidButton = 0;
+        IsRollButtonDisabled = false;
+        IsRestartVisible = false;
+        PawnCount = 0;
+        count = 21;
+    }
+
+    int rollDice()
+    {
+        Random random = new Random();
+        int roll = random.Next(minValue: 1, maxValue: 7); // Generates a number between 1 and 6
+        return roll;
+    }
+}

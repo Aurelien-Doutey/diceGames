@@ -1,0 +1,105 @@
+﻿@page "/pig"
+@rendermode InteractiveServer
+
+<PageTitle>Pig</PageTitle>
+
+<h1>Pig</h1>
+
+<button class="btn btn-primary" @onclick="rollDiceButton" disabled="@IsRollDisabled">Relancer</button>
+<button class="btn btn-primary" @onclick="holdButton" disabled="@IsHoldDisabled">S'arrêter</button>
+<button @onclick="restartGame" class="btn btn-primary" style="visibility: @(GameFinished ? "visible" : "hidden")">Recommencer</button>
+
+<p role="status">Compteur: @count</p>
+<h3 role="status">Score total: @TotalScore</h3>
+
+<h3 role="status">@result</h3>
+<br/>
+
+<div class="dice-container">
+    @foreach (int dice in DiceResults)
+    {
+        <div class="dice-pig" style="--dice: url('/images/dice-@(dice).svg')"></div>
+    }
+</div>
+
+@code {
+    List<int> DiceResults = new();
+    private int DiceResult = 0;
+    private string result = "";
+    private int TotalScore = 0;
+    private int TurnScore = 0;
+    private int count = 0;
+    private bool IsHoldDisabled = true;
+    private bool IsRollDisabled = false;
+    private bool GameFinished = false;
+    
+    protected override void OnInitialized()
+    {
+        TotalScore = 0;
+        TurnScore = 0;
+    }
+
+    bool checkIfOne(){
+        if (DiceResult == 1)
+        {
+            result = "Vous avez fait 1 ! Vous perdez les points de ce tour.";
+            DiceResult = 0;
+            TurnScore = 0;
+            DiceResults.Clear();
+            IsHoldDisabled = true;
+            return true;
+        }
+        return false;
+    }
+    
+    void holdButton()
+    {
+        TotalScore += TurnScore;
+        TurnScore = 0;
+        DiceResults.Clear();
+        IsHoldDisabled = true;
+        if (TotalScore >= 100)
+        {
+            result = "Vous avez gagné !";
+            IsRollDisabled = true;
+            GameFinished = true;
+        } 
+        else
+        {
+            result = "";
+        }
+    }
+    void rollDiceButton()
+    {
+        count++;
+        result = "";
+        DiceResult = rollDice();
+        IsHoldDisabled = false;
+        if (checkIfOne() == false)
+        {
+            TurnScore += DiceResult;
+            result = "Vous avez fait " + DiceResult + " ! Score du tour : " + TurnScore;
+        }
+    }
+
+    int rollDice()
+    {
+        Random random = new Random();
+        int roll = random.Next(minValue: 1, maxValue: 7); // Generates a number between 1 and 6
+        DiceResults.Add(roll);
+        return roll;
+    }
+
+    void restartGame()
+    {
+        TotalScore = 0;
+        TurnScore = 0;
+        count = 0;
+        result = "";
+        DiceResults.Clear();
+        IsHoldDisabled = true;
+        IsRollDisabled = false;
+        GameFinished = false;
+    }
+
+}

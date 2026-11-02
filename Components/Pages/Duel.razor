@@ -1,0 +1,118 @@
+@page "/duel"
+@rendermode InteractiveServer
+
+<PageTitle>Duel de dés</PageTitle>
+
+<h1>Duel de dés</h1>
+
+<button class="btn btn-primary"disabled="@IsRollDisabled" @onclick="rollDiceButton">Relancer</button>
+@if (IsRestartVisible)
+{
+    <button class="btn btn-primary" style="visibility: @(IsRestartVisible ? "visible" : "hidden")" @onclick="restartGame">Recommencer</button>
+}
+
+@if (DiceResult != 0){
+    <p role="status">Votre score :  @DiceResult</p>
+    <div class="dice-duel-container">
+        @for (int i=0; i < (@DiceResults.Count); i++){
+            <div class="dice-duel"
+                style="--dice: url('/images/dice-@(DiceResults[i]).svg')">
+            </div>
+        }
+    </div>
+    <p role="status">Score du bot : @DiceResultBot</p>
+    <div class="dice-duel-container">
+        @for (int i=0; i < (@DiceResultsBot.Count); i++){
+            <div class="dice-duel"
+                style="--dice: url('/images/dice-@(DiceResultsBot[i]).svg')">
+            </div>
+        }
+    </div>
+    <p role="status">@result</p>
+    <h3 role="status">Vos victoires : @NumberOfWins / Victoires du bot : @NumberOfWinsBot</h3>
+}
+
+@code {
+    List<int> DiceResults = new();
+    List<int> DiceResultsBot = new();
+    private int DiceResult = 0;
+    private int DiceResultBot = 0;
+    private string result = "";
+    private int NumberOfWins = 0;
+    private int NumberOfWinsBot = 0;
+    private bool IsRestartVisible = false;
+    private bool IsRollDisabled = false;
+
+    protected override void OnInitialized()
+    {
+        DiceResult = 0;
+        DiceResultBot = 0;
+    }
+
+    void rollDiceButton()
+    {
+        DiceResults.Clear();
+        DiceResultsBot.Clear();
+        for (int i=0; i<2; i++){
+            DiceResults.Add(rollDice());
+            DiceResultsBot.Add(rollDice());
+        }
+        DiceResult = DiceResults.Sum();
+        DiceResultBot = DiceResultsBot.Sum();
+        checkIfUserWon();
+    }
+
+    void checkIfUserWon()
+    {
+        if (DiceResult > DiceResultBot)
+        {
+            result = "Vous avez gagné !";
+            NumberOfWins++;
+
+            if (NumberOfWins == 5)
+            {
+                result = "Vous avez gagné 5 manches !";
+                IsRestartVisible = true;
+                IsRollDisabled = true;
+                return;
+            }
+        }
+        else if (DiceResult < DiceResultBot)
+        {
+            result = "Vous avez perdu !";
+            NumberOfWinsBot++;
+
+            if (NumberOfWinsBot == 5)
+            {
+                result = "Le bot a gagné 5 manches !";
+                IsRestartVisible = true;
+                IsRollDisabled = true;
+                return;
+            }
+        }
+        else
+        {
+            result = "Égalité !";      
+        }
+    }
+
+    int rollDice()
+    {
+        Random random = new Random();
+        int roll = random.Next(minValue: 1, maxValue: 7); // Generates a number between 1 and 6
+        return roll;
+    }
+
+    void restartGame()
+    {
+        DiceResults.Clear();
+        DiceResultsBot.Clear();
+        DiceResult = 0;
+        DiceResultBot = 0;
+        result = "";
+        NumberOfWins = 0;
+        NumberOfWinsBot = 0;
+        IsRestartVisible = false;
+        IsRollDisabled = false;
+    }
+}
