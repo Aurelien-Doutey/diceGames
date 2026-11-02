@@ -5,7 +5,7 @@ Le projet a pour objectif de mettre en pratique le développement avec .NET, la 
 
 ## Jeux disponibles
 
-High Roll : obtenir le meilleur résultat aux dés.
+-High Roll : obtenir le meilleur résultat aux dés.
 
 -Pig : accumuler des points en lançant les dés sans prendre trop de risques.
 
@@ -19,13 +19,7 @@ High Roll : obtenir le meilleur résultat aux dés.
 
 ## Technologies utilisées
 
-  -C#
-  -.NET 10
-  -Blazor
-  -Razor
-  -HTML
-  -CSS
-  -SVG
+C#, .NET 10, Blazor, Razor, HTML, CSS, SVG
 
 ## Fonctionnalités
 
